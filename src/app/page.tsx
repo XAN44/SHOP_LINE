@@ -192,7 +192,7 @@ export default function Home() {
                         : "bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200"
                     }`}
                   >
-                    {role === "admin" ? "👑 ผู้ดูแลระบบ" : "👤 สมาชิก"}
+                    {role === "admin" ? "👑 ผู้ดูแลระบบ" : "👤 ผู้ใช้งาน"}
                   </span>
 
                   <span
