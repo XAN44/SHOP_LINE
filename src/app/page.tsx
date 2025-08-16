@@ -141,7 +141,7 @@ export default function Home() {
         <div className="bg-white/90 backdrop-blur-lg rounded-3xl p-8 shadow-2xl max-w-md w-full text-center">
           <div className="text-6xl mb-4">⚠️</div>
           <div className="text-lg text-red-600 font-medium">
-            เกิดข้อผิดพลาดในการดึงข้อมูลโปรไฟล์
+            เกิดข้อผิดพลาดในการดึงข้อมูลโปรไฟล์ กรุณารอสักครู่
           </div>
         </div>
       </div>
