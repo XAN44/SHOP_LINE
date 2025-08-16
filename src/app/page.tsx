@@ -16,7 +16,7 @@ type MemberData = {
 
 export default function Home() {
   const liffId = "2007937078-BYayrODq";
-  const ADMIN_USER_ID = "U040460c8e21966a39d8923a1a67a80b0";
+  const ADMIN_USER_ID = process.env.ADMIN_ID;
 
   const [profile, setProfile] = useState<Profile>();
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,7 @@ export default function Home() {
 
         const p = await liff.getProfile();
         setProfile(p);
+        console.log(p);
 
         const memberData: MemberData = {
           userId: p.userId,

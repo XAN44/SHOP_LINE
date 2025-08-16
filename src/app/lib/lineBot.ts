@@ -160,7 +160,7 @@ export async function sendPaymentNotification(
   }
 }
 
-// ฟังก์ชันสำหรับส่งการ์ดการอนุมัติพร้อมปุ่ม
+// ฟังก์ชันสำหรับส่งการ์ดการอนุมัติพร้อมปุ่ม // ฟังก์ชันสำหรับส่งการ์ดการอนุมัติพร้อมปุ่ม - ปรับปรุงแล้ว
 export async function sendApprovalResult(
   userId: string,
   displayName: string,
@@ -173,109 +173,119 @@ export async function sendApprovalResult(
 
   if (!lineClient) {
     console.log("❌ LINE client not available, skipping approval notification");
-    return;
+    return false;
   }
 
-  // ตรวจสอบ User ID format
-  if (!userId || !userId.startsWith("U") || userId.length !== 33) {
-    console.error(`❌ Invalid User ID format for approval: ${userId}`);
-    return;
+  // ตรวจสอบ User ID format อย่างละเอียด
+  if (!userId) {
+    console.error("❌ User ID is empty or null");
+    return false;
   }
+
+  const cleanUserId = userId.trim();
+
+  if (!cleanUserId.startsWith("U") || cleanUserId.length !== 33) {
+    console.error(`❌ Invalid User ID format for approval: "${cleanUserId}"`);
+    console.error(`   Expected: starts with 'U' and 33 characters long`);
+    console.error(
+      `   Received: starts with '${cleanUserId.charAt(0)}' and ${
+        cleanUserId.length
+      } characters`
+    );
+    return false;
+  }
+
+  console.log(`✅ Valid User ID format: ${cleanUserId}`);
 
   if (isApproved) {
-    // การ์ดสำหรับการอนุมัติ
-    const approvalCardMessage = {
-      type: "template" as const,
-      altText: "🎉 การชำระเงินได้รับการอนุมัติแล้ว!",
-      template: {
-        type: "buttons" as const,
-        thumbnailImageUrl: "https://img.icons8.com/color/200/checked.png",
-        imageAspectRatio: "rectangle" as const,
-        imageSize: "cover" as const,
-        imageBackgroundColor: "#E8F5E8",
-        title: "🎉 การชำระเงินอนุมัติแล้ว",
-        text: `สวัสดี ${displayName}\nสมาชิกจะหมดอายุ: ${expiryDate?.toLocaleDateString(
-          "th-TH"
-        )}`,
-        actions: [
-          {
-            type: "uri" as const,
-            label: "📱 เข้าใช้งานเว็บ",
-            uri: BASE_URL,
-          },
-          {
-            type: "postback" as const,
-            label: "📞 ติดต่อเรา",
-            data: "contact_support",
-          },
-        ],
-      },
+    // การอนุมัติ - ใช้ข้อความธรรมดาก่อนเพื่อทดสอบ
+    const approvalMessage = {
+      type: "text" as const,
+      text: `🎉 ยินดีด้วย! การชำระเงินได้รับการอนุมัติแล้ว
+
+สวัสดี ${displayName} 
+✅ คุณได้รับสิทธิ์สมาชิกแล้ว
+📅 สมาชิกหมดอายุ: ${expiryDate?.toLocaleDateString("th-TH", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}
+
+🎊 ขอบคุณที่เชื่อมั่นในบริการของเรา!
+🌐 เข้าใช้งาน: ${BASE_URL}`,
     };
 
     try {
-      await lineClient.pushMessage(userId, approvalCardMessage);
-      console.log(`✅ Approval card sent to user: ${userId}`);
+      console.log(`📤 Sending approval message to: ${cleanUserId}`);
+      await lineClient.pushMessage(cleanUserId, approvalMessage);
+      console.log(
+        `✅ Approval message sent successfully to user: ${cleanUserId}`
+      );
+      return true;
     } catch (error) {
-      console.error("Error sending approval card:", error);
-      // Fallback เป็นข้อความธรรมดา
-      const fallbackMessage = {
-        type: "text" as const,
-        text: `🎉 การชำระเงินได้รับการอนุมัติแล้ว!\n\nสวัสดี ${displayName}\nสมาชิกจะหมดอายุวันที่ ${expiryDate?.toLocaleDateString(
-          "th-TH"
-        )}`,
-      };
+      console.error("❌ Error sending approval message:", error);
 
+      // ลองส่งข้อความสั้นๆ แทน
       try {
-        await lineClient.pushMessage(userId, fallbackMessage);
-        console.log(`✅ Fallback approval message sent to user: ${userId}`);
+        console.log("🔄 Attempting simple approval message...");
+        const simpleMessage = {
+          type: "text" as const,
+          text: `🎉 การชำระเงินอนุมัติแล้ว!\nสวัสดี ${displayName}`,
+        };
+
+        await lineClient.pushMessage(cleanUserId, simpleMessage);
+        console.log(`✅ Simple approval message sent to user: ${cleanUserId}`);
+        return true;
       } catch (fallbackError) {
-        console.error("❌ Fallback approval message failed:", fallbackError);
+        console.error("❌ Simple approval message also failed:", fallbackError);
+        return false;
       }
     }
   } else {
-    // การ์ดสำหรับการไม่อนุมัติ
-    const rejectionCardMessage = {
-      type: "template" as const,
-      altText: "❌ การชำระเงินไม่ได้รับการอนุมัติ",
-      template: {
-        type: "buttons" as const,
-        thumbnailImageUrl: "https://img.icons8.com/color/200/cancel.png",
-        imageAspectRatio: "rectangle" as const,
-        imageSize: "cover" as const,
-        imageBackgroundColor: "#FFE5E5",
-        title: "❌ การชำระเงินไม่อนุมัติ",
-        text: `สวัสดี ${displayName}\nกรุณาตรวจสอบข้อมูลและทำรายการใหม่`,
-        actions: [
-          {
-            type: "uri" as const,
-            label: "🔄 ส่งสลิปใหม่",
-            uri: BASE_URL,
-          },
-          {
-            type: "postback" as const,
-            label: "📞 ติดต่อสอบถาม",
-            data: "contact_inquiry",
-          },
-        ],
-      },
+    // การปฏิเสธ - ใช้ข้อความธรรมดา
+    const rejectionMessage = {
+      type: "text" as const,
+      text: `❌ การชำระเงินไม่ได้รับการอนุมัติ
+
+สวัสดี ${displayName}
+😔 ขออภัย สลิปการชำระเงินของคุณไม่ผ่านการตรวจสอบ
+
+📋 กรุณาตรวจสอบ:
+• ความชัดเจนของสลิป
+• จำนวนเงินที่โอน
+• วันที่และเวลาโอน
+
+🔄 สามารถส่งสลิปใหม่ได้ที่: ${BASE_URL}
+📞 หากมีข้อสงสัย กรุณาติดต่อเรา`,
     };
 
     try {
-      await lineClient.pushMessage(userId, rejectionCardMessage);
-      console.log(`✅ Rejection card sent to user: ${userId}`);
+      console.log(`📤 Sending rejection message to: ${cleanUserId}`);
+      await lineClient.pushMessage(cleanUserId, rejectionMessage);
+      console.log(
+        `✅ Rejection message sent successfully to user: ${cleanUserId}`
+      );
+      return true;
     } catch (error) {
-      console.error("Error sending rejection card:", error);
-      // Fallback เป็นข้อความธรรมดา
-      const fallbackMessage = {
-        type: "text" as const,
-        text: `❌ การชำระเงินไม่ได้รับการอนุมัติ\n\nสวัสดี ${displayName}\nกรุณาตรวจสอบข้อมูลและทำรายการใหม่`,
-      };
+      console.error("❌ Error sending rejection message:", error);
 
+      // ลองส่งข้อความสั้นๆ แทน
       try {
-        await lineClient.pushMessage(userId, fallbackMessage);
-        console.log(`✅ Fallback rejection message sent to user: ${userId}`);
+        console.log("🔄 Attempting simple rejection message...");
+        const simpleMessage = {
+          type: "text" as const,
+          text: `❌ การชำระเงินไม่อนุมัติ\nสวัสดี ${displayName} กรุณาส่งสลิปใหม่`,
+        };
+
+        await lineClient.pushMessage(cleanUserId, simpleMessage);
+        console.log(`✅ Simple rejection message sent to user: ${cleanUserId}`);
+        return true;
       } catch (fallbackError) {
-        console.error("❌ Fallback rejection message failed:", fallbackError);
+        console.error(
+          "❌ Simple rejection message also failed:",
+          fallbackError
+        );
+        return false;
       }
     }
   }

@@ -3,8 +3,27 @@ import { NextRequest, NextResponse } from "next/server";
 import db from "@/app/lib/prismaClient";
 import { lineClient } from "@/app/lib/lineBot";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://7420b31bbd15.ngrok-free.app/";
+interface ExpiredUser {
+  displayName: string;
+  userId: string;
+  expiredDate: string;
+}
+
+interface NearExpiryUser {
+  displayName: string;
+  userId: string;
+  expireDate: string;
+}
+
+interface Results {
+  totalChecked: number;
+  expired: number;
+  notified: number;
+  errors: number;
+  expiredUsers: ExpiredUser[];
+  nearExpiry: NearExpiryUser[];
+}
+
 export async function GET(request: NextRequest) {
   try {
     // ตรวจสอบ Authorization (เพื่อความปลอดภัย)
@@ -14,13 +33,13 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date();
-    const results = {
+    const results: Results = {
       totalChecked: 0,
       expired: 0,
       notified: 0,
       errors: 0,
-      expiredUsers: [] as any[],
-      nearExpiry: [] as any[],
+      expiredUsers: [],
+      nearExpiry: [],
     };
 
     // หาสมาชิกที่หมดอายุแล้ว (expireAt < วันนี้)
@@ -55,7 +74,7 @@ export async function GET(request: NextRequest) {
       results.expiredUsers = expiredUsers.map((user) => ({
         displayName: user.displayName,
         userId: user.userId,
-        expiredDate: user.expireAt?.toISOString(),
+        expiredDate: user.expireAt?.toISOString() || "",
       }));
 
       // ส่งการแจ้งเตือนให้ผู้ใช้ที่หมดอายุ
@@ -85,16 +104,18 @@ export async function GET(request: NextRequest) {
     // ส่งการแจ้งเตือนให้ผู้ใช้ที่ใกล้หมดอายุ
     for (const user of nearExpiryUsers) {
       try {
-        await sendNearExpiryNotification(
-          user.userId,
-          user.displayName,
-          user.expireAt!
-        );
-        results.nearExpiry.push({
-          displayName: user.displayName,
-          userId: user.userId,
-          expireDate: user.expireAt?.toISOString(),
-        });
+        if (user.expireAt) {
+          await sendNearExpiryNotification(
+            user.userId,
+            user.displayName,
+            user.expireAt
+          );
+          results.nearExpiry.push({
+            displayName: user.displayName,
+            userId: user.userId,
+            expireDate: user.expireAt.toISOString(),
+          });
+        }
       } catch (error) {
         console.error(
           `Failed to notify near-expiry user ${user.userId}:`,
@@ -118,7 +139,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("❌ Cron job error:", error);
     return NextResponse.json(
-      { error: "Internal server error", details: error },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -143,7 +167,7 @@ async function sendExpiryNotification(userId: string, displayName: string) {
         {
           type: "uri" as const,
           label: "🔄 ต่ออายุสมาชิก",
-          uri: BASE_URL,
+          uri: "https://7420b31bbd15.ngrok-free.app/",
         },
         {
           type: "postback" as const,
@@ -186,7 +210,7 @@ async function sendNearExpiryNotification(
         {
           type: "uri" as const,
           label: "🔄 ต่ออายุล่วงหน้า",
-          uri: BASE_URL,
+          uri: "https://7420b31bbd15.ngrok-free.app/",
         },
         {
           type: "postback" as const,
@@ -201,7 +225,7 @@ async function sendNearExpiryNotification(
 }
 
 // ส่งรายงานให้ Admin
-async function sendAdminReport(results: any, timestamp: Date) {
+async function sendAdminReport(results: Results, timestamp: Date) {
   if (!lineClient) return;
 
   const adminUserId = process.env.CURRENT_ADMIN_ID?.trim();
@@ -223,7 +247,7 @@ ${
 🔴 ผู้ใช้ที่หมดอายุ:
 ${results.expiredUsers
   .map(
-    (u: { displayName: string; expiredDate: string }) =>
+    (u) =>
       `• ${u.displayName} (หมดอายุ: ${new Date(
         u.expiredDate
       ).toLocaleDateString("th-TH")})`
@@ -239,7 +263,7 @@ ${
 🟡 ผู้ใช้ใกล้หมดอายุ:
 ${results.nearExpiry
   .map(
-    (u: { displayName: string; expireDate: string }) =>
+    (u) =>
       `• ${u.displayName} (หมดอายุ: ${new Date(u.expireDate).toLocaleDateString(
         "th-TH"
       )})`

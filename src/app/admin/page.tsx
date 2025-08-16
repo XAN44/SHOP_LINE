@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Payment = {
@@ -13,7 +13,8 @@ type Payment = {
   };
 };
 
-export default function AdminPage() {
+// Separate component that uses useSearchParams
+function AdminContent() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [highlightedPayment, setHighlightedPayment] = useState<string | null>(
@@ -239,5 +240,22 @@ export default function AdminPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function AdminLoading() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-lg">กำลังโหลด...</div>
+    </div>
+  );
+}
+
+// Main component wrapped with Suspense
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<AdminLoading />}>
+      <AdminContent />
+    </Suspense>
   );
 }

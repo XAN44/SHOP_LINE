@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import liff from "@line/liff";
-
+interface UserProfile {
+  userId: string;
+  displayName: string;
+  pictureUrl?: string;
+  statusMessage?: string;
+}
 export default function useLiff(liffId: string) {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     liff.init({ liffId }).then(async () => {
@@ -16,5 +21,5 @@ export default function useLiff(liffId: string) {
     });
   }, [liffId]);
 
-  return profile;
+  return { profile, setProfile };
 }

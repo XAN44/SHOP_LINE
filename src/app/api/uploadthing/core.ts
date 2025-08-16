@@ -1,18 +1,26 @@
+// app/api/uploadthing/core.ts
 import { createUploadthing, type FileRouter } from "uploadthing/next";
-import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
 
+// FileRouter for your app
 export const ourFileRouter = {
-  // Payment slip uploader
-  slipUploader: f({ image: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async ({ req }) => {
-      return { userId: "authenticated-user" };
+  // Define as many FileRoutes as you like, each with a unique routeSlug
+  imageUploader: f({ image: { maxFileSize: "4MB" } })
+    // Set permissions and file types for this FileRoute
+    .middleware(async () => {
+      // This code runs on your server before upload
+
+      // Whatever is returned here is accessible in onUploadComplete as `metadata`
+      return { uploadedBy: "user" };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Upload complete for userId:", metadata.userId);
+      // This code RUNS ON YOUR SERVER after upload
+      console.log("Upload complete for user:", metadata.uploadedBy);
       console.log("File URL:", file.url);
-      return { uploadedBy: metadata.userId };
+
+      // Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
+      return { uploadedBy: metadata.uploadedBy, url: file.url };
     }),
 } satisfies FileRouter;
 
