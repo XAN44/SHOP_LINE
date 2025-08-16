@@ -50,6 +50,8 @@ async function handlePostback(event: PostbackEvent) {
       },
     });
 
+    console.log(updatedPayment);
+
     // ถ้าอนุมัติ ให้อัปเดตข้อมูลสมาชิกใน User table ด้วย
     if (isApproved) {
       await db.user.upsert({

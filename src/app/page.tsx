@@ -167,8 +167,10 @@ export default function Home() {
           <div className="p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-8">
               <div className="relative">
-                <img
-                  src={profile.pictureUrl}
+                <Image
+                  width={1500}
+                  height={1500}
+                  src={profile.pictureUrl ?? ""}
                   alt="profile"
                   className="rounded-full w-20 h-20 sm:w-24 sm:h-24 border-4 border-white shadow-lg"
                 />

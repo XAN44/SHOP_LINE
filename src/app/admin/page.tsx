@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 type Payment = {
   id: string;
@@ -226,7 +227,9 @@ function AdminContent() {
                       rounded-lg overflow-hidden
                     `}
                     >
-                      <img
+                      <Image
+                        width={1500}
+                        height={1500}
                         src={payment.slipPath}
                         alt="Payment slip"
                         className="w-full h-auto border rounded-lg"
@@ -251,7 +254,6 @@ function AdminLoading() {
   );
 }
 
-// Main component wrapped with Suspense
 export default function AdminPage() {
   return (
     <Suspense fallback={<AdminLoading />}>
